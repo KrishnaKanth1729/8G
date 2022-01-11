@@ -17,4 +17,5 @@ Create a new application, add a bot to that, get the bot token and paste it in `
 
 # Core developers
 KrishnaKanth1729 <br>
-PranavSudhakarSG
+PranavSudhakarSG <br>
+ShikharKonnur
