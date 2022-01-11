@@ -2,7 +2,7 @@ import discord
 import sqlite3
 import secrets
 
-conn = sqlite3.connect("tags.db")
+conn = sqlite3.connect(secrets.DB_FILENAME)
 cursor = conn.cursor()
 client = discord.Client()
 
@@ -42,5 +42,9 @@ async def on_message(message: discord.Message):
             name = items[1]
             cursor.execute(f"SELECT * FROM tags WHERE name=?", (name,))
             rows = cursor.fetchall()
-            print(rows)
+            try:
+                result = rows[0]
+                message.channel.send(f"{result[2]} \n **Author**: {result[3].replace('_', '#')}")
+            except:
+                await message.channel.send(f"Tag with name {name} is not found")
 client.run(secrets.TOKEN)
