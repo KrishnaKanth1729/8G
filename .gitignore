@@ -1,3 +1,4 @@
 /8g_env
 secrets.py
 tags.db
+/__pycache__
