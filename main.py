@@ -7,6 +7,8 @@ cursor = conn.cursor()
 client = discord.Client()
 
 cursor.execute("CREATE TABLE IF NOT EXISTS tags(id integer PRIMARY KEY AUTOINCREMENT, name text, content text, author text)")
+cursor.execute("CREATE TABLE IF NOT EXISTS")
+cursor.execute("CREATE TABLE IF NOT EXISTS poll(id integer PRIMARY KEY AUTOINCREMENT, title text, options")
 
 @client.event
 async def on_ready():
