@@ -25,8 +25,11 @@ async def on_message(message: discord.Message):
             items = message.content.split()
             name = items[1]
             content = " ".join(items[2:])
+            if message.mentions:
+                return await message.channel.send("There's a mention in the tag")
             author = str(message.author).replace('#', '_')
             print(name, content, author)
+
             cursor.execute(f"SELECT * FROM tags WHERE name=?", (name,))
             rows = cursor.fetchall()
             print(rows)
@@ -44,7 +47,7 @@ async def on_message(message: discord.Message):
             rows = cursor.fetchall()
             try:
                 result = rows[0]
-                message.channel.send(f"{result[2]} \n **Author**: {result[3].replace('_', '#')}")
+                await message.channel.send(f"{result[2]} \n **Author**: {result[3].replace('_', '#')}")
             except:
                 await message.channel.send(f"Tag with name {name} is not found")
 client.run(secrets.TOKEN)
