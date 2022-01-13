@@ -3,3 +3,4 @@ secrets.py
 tags.db
 /__pycache__
 *.db
+*.db-journal

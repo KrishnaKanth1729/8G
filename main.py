@@ -1,55 +1,97 @@
 import discord
-import sqlite3
+from discord.ext import commands
+import psycopg2
 import secrets
+from utility import reverse_dict
 
-conn = sqlite3.connect(secrets.DB_FILENAME)
+bot = commands.Bot(command_prefix="g!")
+
+conn = psycopg2.connect(
+    host=secrets.DB_HOST,
+    database=secrets.DB_NAME,
+    user=secrets.DB_USER,
+    password=secrets.DB_PASSWORD
+)
+
 cursor = conn.cursor()
-client = discord.Client()
 
-cursor.execute("CREATE TABLE IF NOT EXISTS tags(id integer PRIMARY KEY AUTOINCREMENT, name text, content text, author text)")
-cursor.execute("CREATE TABLE IF NOT EXISTS")
-cursor.execute("CREATE TABLE IF NOT EXISTS poll(id integer PRIMARY KEY AUTOINCREMENT, title text, options")
+numbers = {
+    1: "1️⃣",
+    2: "2️⃣",
+    3: "3️⃣",
+    4: "4️⃣",
+    5: "5️⃣"
+}
 
-@client.event
-async def on_ready():
-    print(f'{client.user} has connected to Discord!')
 
-@client.event
-async def on_message(message: discord.Message):
-    if message.author == client.user:
-        return
+@bot.command(name="poll")
+async def new_poll(ctx, query: str, *args):
+    """
+    Create a new poll
+    """
+    print(*args)
+    if len(args) > 9:
+        return await ctx.channel.send("You can't have more than 9 options")
 
-    if message.content.startswith('g!'):
-        if message.content == 'g!hello':
-            await message.channel.send(f"Hello {message.author.mention}", reference=message)
+    for arg in args:   
+        cursor.execute("INSERT INTO option(name, count) VALUES(%s,%s)", (arg, 0,))
+        conn.commit()
+
+    ids = []
+    for arg in args:
+        cursor.execute("SELECT option_id FROM option WHERE name=%s", (arg,))
+        rows = cursor.fetchall()[0]
+        ids.append(str(rows[0]))
+
+    await ctx.message.delete()
+
+    embed = discord.Embed(title=f"Poll by {ctx.author}", description=f"{query}", color=0x000)
     
-        elif message.content.startswith('g!create'):
-            items = message.content.split()
-            name = items[1]
-            content = " ".join(items[2:])
-            if message.mentions:
-                return await message.channel.send("There's a mention in the tag")
-            author = str(message.author).replace('#', '_')
-            print(name, content, author)
+    for i, arg in enumerate(args):
+        embed.add_field(name=f"{numbers[i+1]}", value=arg, inline=False)
+        
+    msg = await ctx.channel.send(embed=embed)
+    for i, arg in enumerate(args):
+        await msg.add_reaction(f"{numbers[i+1]}")
 
-            cursor.execute(f"SELECT * FROM tags WHERE name=?", (name,))
-            rows = cursor.fetchall()
-            print(rows)
-            if len(rows):
-                return await message.channel.send("Tag with that name already exists", reference=message)
-            cursor.execute('INSERT INTO tags(name, content, author) VALUES(?, ?, ?)', (name, content, author))
-           
-            conn.commit()
-            await message.channel.send(f"Tag successfully created", reference=message)
+    cursor.execute("INSERT INTO poll(title, options, author, message_id) VALUES(%s,%s,%s,%s)", (query, ",".join(ids), str(ctx.author).replace("#", "_"), str(msg.id),))
+    conn.commit()
 
-        elif message.content.startswith('g!tag'):
-            items = message.content.split()
-            name = items[1]
-            cursor.execute(f"SELECT * FROM tags WHERE name=?", (name,))
-            rows = cursor.fetchall()
-            try:
-                result = rows[0]
-                await message.channel.send(f"{result[2]} \n **Author**: {result[3].replace('_', '#')}")
-            except:
-                await message.channel.send(f"Tag with name {name} is not found")
-client.run(secrets.TOKEN)
+@bot.command(name="pollend")
+async def end_poll(ctx):
+    """
+    End the latest poll of the user
+    """
+    cursor.execute("SELECT * FROM poll WHERE author=%s", (str(ctx.author).replace("#", "_"),))
+    row = cursor.fetchall()[-1]
+
+    poll_message = await ctx.fetch_message(int(row[-1]))
+    print(int(row[-1]))
+    c = {}
+    for reaction in poll_message.reactions:
+        if reaction.emoji in numbers.values():  # Checking if it is a number emoji
+            c[reaction.emoji] = reaction.count
+
+    c = sorted(c, key=lambda x: int(c[x])-1, reverse=True)
+
+    options_ids = row[2].split(',')
+
+    options = []
+    for _id in options_ids:
+        cursor.execute("SELECT * FROM option WHERE option_id=%s", (str(_id),))
+        options.append(cursor.fetchone())
+    
+    r = reverse_dict(numbers)
+    res = []
+
+    for item in c:
+        res.append(r[item]-1)
+    
+    embed = discord.Embed(title=f"Poll results", description=f"{row[1]}", color=0x000)
+    
+    for i, item in enumerate(res):
+        embed.add_field(name=f"**{i+1}**. {options[item][1]}", value=f"|", inline=True)
+    
+    await ctx.channel.send(embed=embed)
+
+bot.run(secrets.BOT_TOKEN)
