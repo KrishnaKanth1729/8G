@@ -94,4 +94,27 @@ async def end_poll(ctx):
     
     await ctx.channel.send(embed=embed)
 
+@bot.command(name="create_tag")
+async def create_tag(ctx, title: str, content: str):
+    cursor.execute("SELECT * FROM tag WHERE name=%s", (title,))
+    rows = cursor.fetchall()
+
+    if len(rows):
+        return await ctx.channel.send("Tag with that name already exists")
+    
+    cursor.execute('INSERT INTO tag(name, content, author) VALUES(%s,%s,%s)', (title, content, str(ctx.author).replace("#", "_")))  
+    conn.commit()
+    await ctx.channel.send(f"Tag successfully created")
+
+@bot.command(name="tag")
+async def tag(ctx, title: str):
+    cursor.execute("SELECT * FROM tag WHERE name=%s", (title,))
+    rows = cursor.fetchall()
+            
+    try:
+        result = rows[0]
+        await ctx.channel.send(f"{result[2]} \n **Author**: {result[3].replace('_', '#')}")
+    except:
+        await ctx.channel.send(f"Tag with name {title} is not found")
+
 bot.run(secrets.BOT_TOKEN)
