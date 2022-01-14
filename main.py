@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 import psycopg2
 import secrets
+import datetime
+import schedule
 from utility import reverse_dict
 
 bot = commands.Bot(command_prefix="g!")
@@ -12,7 +14,6 @@ conn = psycopg2.connect(
     user=secrets.DB_USER,
     password=secrets.DB_PASSWORD
 )
-
 cursor = conn.cursor()
 
 numbers = {
@@ -20,8 +21,8 @@ numbers = {
     2: "2️⃣",
     3: "3️⃣",
     4: "4️⃣",
-    5: "5️⃣"
-}
+    5: "5️⃣",
+} 
 
 
 @bot.command(name="poll")
@@ -117,4 +118,13 @@ async def tag(ctx, title: str):
     except:
         await ctx.channel.send(f"Tag with name {title} is not found")
 
+def send_reminder(content):
+    general = bot.get_channel(secrets.GENERAL_CHANNEL_ID)
+    general.send(f"@everyone {content}")
+
+@bot.command(name="schedule")
+async def create_schedule_reminder(ctx, title: str, content: str, time: str):
+    schedule.every().day.at(time).do(send_reminder, f"{title}: {content}")
+    await ctx.channel.send("Done")
+    
 bot.run(secrets.BOT_TOKEN)
