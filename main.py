@@ -1,9 +1,10 @@
 import discord
 from discord.ext import commands, tasks
+from discord.utils import get
 import psycopg2
 import secrets
 import datetime
-import threading
+import asyncio
 from utility import reverse_dict
 
 bot = commands.Bot(command_prefix="g!")
@@ -27,15 +28,36 @@ numbers = {
 @bot.event
 async def on_ready():
     print("Connected")
-    reminders.start()
+    await reminders.start()
 
+@bot.listen('on_message')
+async def on_message(message):
+    if message.author.bot or message.channel.id == secrets.LOG_CHANNEL_ID:
+        return
 
+    log_channel = bot.get_channel(secrets.LOG_CHANNEL_ID)
+    
+    embed = discord.Embed(title=message.channel, description=f"Author: {message.author.mention}", color=0x000)
+    embed.add_field(name=f"> {message.content}", value="------------------", inline=True)
+    embed.set_footer(text=message.created_at.strftime("%H:%M, %d/%m/%Y"), icon_url=message.author.avatar_url)
+    
+    await log_channel.send(embed=embed)
+
+    
+@commands.has_any_role("Developer", "admin(?)")
+@bot.command(name="purge")
+async def purge(ctx, amount: int = 5):
+
+    await ctx.channel.purge(limit=amount)
+    msg = await ctx.channel.send(f"Channel Purged ({amount})")
+    await asyncio.sleep(5)
+    await msg.delete()
 @bot.command(name="poll")
 async def new_poll(ctx, query: str, *args):
     """
     Create a new poll
     """
-    print(*args)
+
     if len(args) > 9:
         return await ctx.channel.send("You can't have more than 9 options")
 
@@ -145,9 +167,34 @@ async def reminders():
 
 @bot.command(name="schedule")
 async def create_schedule_reminder(ctx, title: str, content: str, time: str):
-    print(time)
+
     cursor.execute("INSERT INTO reminder(title, about, time, count) VALUES(%s,%s,%s,%s)", (title, content, time,0))
     conn.commit()
     await ctx.channel.send("Done")
 
+
+@bot.command(name="lock")
+async def lock_channel(ctx):
+    channel = ctx.channel
+    overwrite = channel.overwrites_for(ctx.guild.default_role)
+    overwrite.send_messages = False
+    await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+    await ctx.send('Channel locked. 🔒')
+
+@bot.command(name="unlock")
+async def unlock_channel(ctx, channel: discord.TextChannel):
+    overwrite = channel.overwrites_for(ctx.guild.default_role)
+    overwrite.send_messages = True
+    await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+    await ctx.send("Channel unlocked")
+
+@bot.command(name="mute")
+async def mute_member(ctx, member: discord.Member):
+    await member.add_roles(ctx.guild.get_role(secrets.MUTED_ROLE_ID))
+    await ctx.send("Member muted")
+
+@bot.command(name="unmute")
+async def unmute_member(ctx, member: discord.Member):
+    await member.remove_roles(ctx.guild.get_role(secrets.MUTED_ROLE_ID))
+    await ctx.send("Member unmuted")
 bot.run(secrets.BOT_TOKEN)
