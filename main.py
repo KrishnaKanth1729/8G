@@ -1,9 +1,10 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import psycopg2
 import secrets
 import datetime
 import schedule
+import threading
 from utility import reverse_dict
 
 bot = commands.Bot(command_prefix="g!")
@@ -24,7 +25,10 @@ numbers = {
     5: "5️⃣",
 } 
 
-
+@bot.event
+async def on_ready():
+    print("Connected")
+    reminders.start()
 @bot.command(name="poll")
 async def new_poll(ctx, query: str, *args):
     """
@@ -122,9 +126,28 @@ def send_reminder(content):
     general = bot.get_channel(secrets.GENERAL_CHANNEL_ID)
     general.send(f"@everyone {content}")
 
+
+@tasks.loop(seconds=1)
+async def reminders():
+    now = datetime.datetime.now()
+    current_time = now.strftime("%H:%M %d/%m/%y")
+
+    cursor.execute("SELECT * FROM reminder")
+    reminders_ = cursor.fetchall()
+
+    for reminder in reminders_:
+        if str(reminder[3]) == str(current_time) and reminder[4] == 0:
+            general = bot.get_channel(secrets.GENERAL_CHANNEL_ID)
+            await general.send(f"**Schedule** \n @everyone \n **{reminder[1]}** : {reminder[2]}")
+            cursor.execute("UPDATE reminder SET count=1 where reminder_id=%s", (reminder[0],))
+            conn.commit()
+
 @bot.command(name="schedule")
 async def create_schedule_reminder(ctx, title: str, content: str, time: str):
-    schedule.every().day.at(time).do(send_reminder, f"{title}: {content}")
+    print(time)
+    cursor.execute("INSERT INTO reminder(title, about, time, count) VALUES(%s,%s,%s,%s)", (title, content, time,0))
+    conn.commit()
     await ctx.channel.send("Done")
-    
+
+# bot.loop.create_task(reminders())
 bot.run(secrets.BOT_TOKEN)
