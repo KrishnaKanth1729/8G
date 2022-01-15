@@ -28,6 +28,8 @@ numbers = {
 async def on_ready():
     print("Connected")
     reminders.start()
+
+
 @bot.command(name="poll")
 async def new_poll(ctx, query: str, *args):
     """
@@ -148,5 +150,4 @@ async def create_schedule_reminder(ctx, title: str, content: str, time: str):
     conn.commit()
     await ctx.channel.send("Done")
 
-# bot.loop.create_task(reminders())
 bot.run(secrets.BOT_TOKEN)
