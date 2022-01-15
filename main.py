@@ -3,7 +3,6 @@ from discord.ext import commands, tasks
 import psycopg2
 import secrets
 import datetime
-import schedule
 import threading
 from utility import reverse_dict
 
