@@ -27,7 +27,12 @@ Create a new application, add a bot to that, get the bot token and paste it in `
 pip install -r requirements.txt
 ```
 
-3. Run the main file
+3. Migrations
+```py
+python migrations.py
+```
+
+4. Run the main file
 ```py
 python main.py
 ```
