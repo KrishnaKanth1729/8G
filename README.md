@@ -37,6 +37,15 @@ python migrations.py
 python main.py
 ```
 
+Features:
+- Tag system
+- Poll system
+- Mute/Unmute
+- Purge
+- Schedule
+- Logs
+- Ghost pings
+
 # Core developers
 KrishnaKanth1729 <br>
 PranavSudhakarSG <br>
