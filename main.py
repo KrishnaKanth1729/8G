@@ -43,7 +43,14 @@ async def on_message(message):
     
     await log_channel.send(embed=embed)
 
-    
+@bot.listen('on_message_delete')
+async def on_message_delete(message):
+    if message.mentions:
+        log_channel = bot.get_channel(secrets.LOG_CHANNEL_ID)
+        embed = discord.Embed(title="Ghost Ping", description=f"{message.author.mention} in {message.channel}", color=0x500)
+        embed.set_footer(text=message.created_at.strftime("%H:%M, %d/%m/%Y"), icon_url=message.author.avatar_url)
+        await log_channel.send(embed=embed)
+
 @commands.has_any_role("Developer", "admin(?)")
 @bot.command(name="purge")
 async def purge(ctx, amount: int = 5):
