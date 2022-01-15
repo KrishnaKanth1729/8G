@@ -52,6 +52,8 @@ async def purge(ctx, amount: int = 5):
     msg = await ctx.channel.send(f"Channel Purged ({amount})")
     await asyncio.sleep(5)
     await msg.delete()
+
+
 @bot.command(name="poll")
 async def new_poll(ctx, query: str, *args):
     """
@@ -172,7 +174,7 @@ async def create_schedule_reminder(ctx, title: str, content: str, time: str):
     conn.commit()
     await ctx.channel.send("Done")
 
-
+@commands.has_any_role('Developer', 'admin(?)')
 @bot.command(name="lock")
 async def lock_channel(ctx):
     channel = ctx.channel
@@ -188,11 +190,14 @@ async def unlock_channel(ctx, channel: discord.TextChannel):
     await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
     await ctx.send("Channel unlocked")
 
+
+@commands.has_any_role('Developer', 'admin(?)')
 @bot.command(name="mute")
 async def mute_member(ctx, member: discord.Member):
     await member.add_roles(ctx.guild.get_role(secrets.MUTED_ROLE_ID))
     await ctx.send("Member muted")
 
+@commands.has_any_role('Developer', 'admin(?)')
 @bot.command(name="unmute")
 async def unmute_member(ctx, member: discord.Member):
     await member.remove_roles(ctx.guild.get_role(secrets.MUTED_ROLE_ID))
